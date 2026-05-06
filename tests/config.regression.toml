@@ -1,0 +1,16 @@
+# Smoke test config: small enough to run in <1 second.
+# 4096 particles, 300 steps equivalents.
+
+n_part    = 4096
+bins      = 500
+dt        = 4.430982591982e-7
+mass      = 6.646473667973e-27
+n_threads = 4
+sigma_l   = 1.0e-4
+
+steps = [100, 100, 100]
+
+resume      = false
+input_file  = "graba.dmp"
+dump        = false
+output_file = "graba.dmp"

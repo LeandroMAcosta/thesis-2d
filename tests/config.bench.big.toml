@@ -1,0 +1,20 @@
+# Bench config — comparable to the 1D parent's config.bench.big.toml
+# but with N×2 less because 2D doubles the per-particle state.
+
+n_part    = 2097152
+bins      = 500
+dt        = 4.430982591982e-7
+mass      = 6.646473667973e-27
+n_threads = 8
+sigma_l   = 1.0e-4
+
+steps = [100000, 100000, 100000, 100000, 100000]
+
+resume      = false
+input_file  = "graba.dmp"
+dump        = false
+output_file = "graba.dmp"
+
+alfa = 1.0e-4
+pmin = 2.0e-26
+pmax = 3.0e-23

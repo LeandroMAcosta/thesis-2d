@@ -1,0 +1,34 @@
+# Build
+build/
+main
+main-event
+*.o
+*.a
+
+# Output
+*.dat
+*.dmp
+graba.dmp*
+
+# Editor / IDE
+.vscode/
+*.swp
+*~
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+tools/.venv/
+
+# Generated figures (regenerable; commit only the curated ones in docs/figures)
+*.png
+*.gif
+*.svg
+*.eps
+!docs/figures/*.png
+!docs/figures/*.gif
+!docs/figures/*.svg
+
+# Misc
+compile_commands.json
