@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Wrapper that runs plot.py inside the venv.
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+exec "$ROOT/tools/.venv/bin/python" "$ROOT/tools/plot.py" "$@"

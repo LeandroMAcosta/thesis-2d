@@ -74,10 +74,48 @@ thesis-2d/
 └── tools/                 # plot, animate, tui, bench
 ```
 
+## Visualizaciones
+
+Galería completa con todos los plots y animaciones en
+[`docs/figures/README.md`](docs/figures/README.md). Algunas muestras:
+
+**Dashboard** (régimen relajación, $N = 2^{18}$, 1M pasos):
+
+![Dashboard](docs/figures/dashboard_relax.png)
+
+**Animación del joint $h(x, y)$ relajando a uniforme**:
+
+![h(x,y) relaxing](docs/figures/anim_joint.gif)
+
+**Animación de las posiciones (régimen periódico, energía bit-conservada)**:
+
+![scatter periodic](docs/figures/anim_scatter_periodic.gif)
+
+**Distribución de momentos $(p_x, p_y)$ alcanzando MB 2D**:
+
+![pscatter](docs/figures/anim_pscatter.gif)
+
+## Toolkit
+
+```bash
+./tools/setup.sh                                                       # one-time venv
+./tools/plot dashboard tests/last_run/X1000000.dat --dump graba.dmp \  # PNG combinado
+    -o my_dashboard.png
+./tools/plot {marginals,joint,radial,angular,scatter,energy} ...       # plots individuales
+./tools/animate {joint,marginals,scatter,pscatter} <snapshots_dir>     # GIFs
+./tools/tui [config.toml]                                              # monitor en vivo
+./tools/bench run <config> --notes "..."                               # registra a bench.db
+./tools/bench {list,show,compare,export}                               # consulta historial
+```
+
 ## Documentación
 
 - [`docs/ALGORITHM.md`](docs/ALGORITHM.md) — derivación matemática, equivalencia
-  con stepping, casos borde, validación.
+  con stepping, casos borde, validación, ~700 líneas con fórmulas LaTeX.
+- [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) — benchmarks, escalabilidad,
+  comparación con el repo padre 1D.
+- [`docs/figures/README.md`](docs/figures/README.md) — galería con todas las
+  figuras explicadas.
 - [`CLAUDE.md`](CLAUDE.md) — contexto para sesiones futuras de Claude Code.
 
 ## Repo padre
