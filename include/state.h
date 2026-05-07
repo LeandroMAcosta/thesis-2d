@@ -19,7 +19,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define MAX_TANDAS    500
+#define MAX_TANDAS    2000   /* up to ~2000 batches per run for animation cadence */
 #define MAX_FILENAME  256
 #define HXY_BINS      64    /* coarse 2D joint histogram, 64×64 = 4096 cells */
 

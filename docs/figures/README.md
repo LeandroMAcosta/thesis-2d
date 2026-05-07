@@ -83,20 +83,27 @@ distribuidas $25\%$ en cada uno de los 4 cuadrantes. En $T/2$, el
 cálculo da que TODAS las partículas (independiente del signo de su
 velocidad) terminan en $(-x_0, -y_0)$ — la esquina opuesta.
 
-### Cadencia con 5 zonas lentas
+### Cadencia con muchos snapshots intermedios
 
-Para que cada uno de los 5 puntos críticos sea visible, los snapshots
-se concentran cerca de cada uno (5 antes y 5 después,
-exponencialmente cercanos: 3, 30, 300, 3000, 30000 pasos):
+**521 snapshots** distribuidos así:
 
-```python
-steps = [3, 27, 270, 2700, 27000, 190000, 27000, 2700, 270, 27, 3,
-         3, 27, 270, 2700, 27000, 190000, 27000, 2700, 270, 27, 3,
-         3, 27, 270, 2700, 27000, 190000, 27000, 2700, 270, 27, 3,
-         3, 27, 270, 2700, 27000, 190000, 27000, 2700, 270, 27, 3]
-# total = 1 000 000
-# 45 snapshots agrupados en torno a evol = 0, 250k, 500k, 750k, 1M.
+- 120 snapshots uniformemente espaciados en cada una de las 4 zonas
+  intermedias (entre puntos críticos consecutivos), saltos de ~2080
+  pasos entre cada uno → la transición se ve smooth.
+- 5 snapshots exponencialmente cercanos a cada lado de cada punto
+  crítico (3, 30, 300, 3000, 30000 pasos antes y después) → los
+  puntos críticos se capturan exactamente.
+
 ```
+total snapshots = 521
+total steps     = 1 000 000  (exacto)
+min step entre snapshots = 3
+max step entre snapshots = 2 084
+duración de la animación  ≈ 52 segundos a 10 fps
+```
+
+El loop OMP procesa la corrida completa en < 5 s; las animaciones
+matplotlib tardan ~minutos en renderizar 521 frames.
 
 > ✅ **Verificación numérica**: L1 distance per particle entre
 > snapshot 0 y snapshot 1M = **0.000000** exacto. Las 65 536 partículas
