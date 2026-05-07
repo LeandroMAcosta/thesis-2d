@@ -83,7 +83,7 @@ def cmd_joint(args):
 
     for i, (evol, path) in enumerate(snaps):
         header, _, joint = load_snapshot(path)
-        fig, ax = plt.subplots(figsize=(8, 7))
+        fig, ax = plt.subplots(figsize=(6, 5), dpi=80)
         im = ax.imshow(joint.T, origin="lower", extent=[-0.5, 0.5, -0.5, 0.5],
                        cmap="viridis", vmin=0, vmax=vmax, aspect="auto")
         ax.set_xlabel("x [m]"); ax.set_ylabel("y [m]")
@@ -120,7 +120,7 @@ def cmd_marginals(args):
         header, marg, _ = load_snapshot(path)
         N = header["N"]; BINS = header["BINS"]
         interior = slice(2, 2 * BINS + 2)
-        fig, axes = plt.subplots(2, 2, figsize=(13, 9))
+        fig, axes = plt.subplots(2, 2, figsize=(10, 7), dpi=80)
 
         ax = axes[0, 0]
         ax.bar(marg["x"][interior], marg["hx"][interior], width=1.0/BINS,
@@ -195,7 +195,7 @@ def cmd_scatter(args):
             n_show = min(n_show, N)
             sample_idx = rng.choice(N, size=n_show, replace=False)
         x, y, _, _, _ = load_dump(dumps[evol], N)
-        fig, ax = plt.subplots(figsize=(8, 8))
+        fig, ax = plt.subplots(figsize=(6, 6), dpi=80)
         ax.scatter(x[sample_idx], y[sample_idx], s=1.5, alpha=0.4, color="steelblue")
         ax.set_xlim(-0.5, 0.5); ax.set_ylim(-0.5, 0.5)
         ax.set_xlabel("x [m]"); ax.set_ylabel("y [m]")
@@ -233,7 +233,7 @@ def cmd_pscatter(args):
             n_show = min(n_show, N)
             sample_idx = rng.choice(N, size=n_show, replace=False)
         _, _, px, py, _ = load_dump(dumps[evol], N)
-        fig, ax = plt.subplots(figsize=(8, 8))
+        fig, ax = plt.subplots(figsize=(6, 6), dpi=80)
         ax.scatter(px[sample_idx], py[sample_idx], s=1.5, alpha=0.4, color="orange")
         ax.set_xlim(-P_RANGE, P_RANGE); ax.set_ylim(-P_RANGE, P_RANGE)
         ax.set_xlabel(r"$p_x$"); ax.set_ylabel(r"$p_y$")
