@@ -134,6 +134,14 @@ void io_load_parameters(const char *filename, SimParams *params)
     toml_datum_t disc = toml_bool_in(root, "discretize_momenta");
     params->discretize_momenta = (disc.ok && disc.u.b) ? true : false;
 
+    toml_datum_t up = toml_bool_in(root, "init_uniform_p_magnitude");
+    params->init_uniform_p_magnitude = (up.ok && up.u.b) ? true : false;
+
+    toml_datum_t um = toml_double_in(root, "uniform_p_magnitude");
+    if (!um.ok) { toml_datum_t umi = toml_int_in(root, "uniform_p_magnitude");
+                  if (umi.ok) { um.ok = 1; um.u.d = (double)umi.u.i; } }
+    params->uniform_p_magnitude = um.ok ? um.u.d : 0.0;
+
     toml_datum_t a = toml_double_in(root, "alfa");
     if (!a.ok) { toml_datum_t ai = toml_int_in(root, "alfa");
                  if (ai.ok) { a.ok = 1; a.u.d = (double)ai.u.i; } }

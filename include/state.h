@@ -43,6 +43,12 @@ typedef struct {
     bool should_dump;
     bool keep_snapshots;
     bool discretize_momenta;
+    /* If true, init all particles with |p_x| = |p_y| = uniform_p_magnitude,
+     * with random ± signs. Used for the cycle-demo: choose the magnitude
+     * so that an integer number of bounce periods fits in the run length,
+     * making the system return EXACTLY to its initial state. */
+    bool init_uniform_p_magnitude;
+    double uniform_p_magnitude;
 
     uint64_t seed;
 } SimParams;

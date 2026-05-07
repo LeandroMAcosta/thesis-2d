@@ -94,22 +94,38 @@ void physics_init_state_random(SimState *s)
         s->y[i] = ry * X_INIT_HALF;
     }
 
-    /* Momenta: per-component gaussian via Box-Muller on pairs.
-     * Two independent BM transforms give us (p_x, p_y) for each
-     * particle from 4 uniform samples. */
-    #pragma omp parallel for schedule(static)
-    for (int i = 0; i < N; i++) {
-        uint32_t seed = rng_seed_mix(base_p, (uint32_t)i);
-        double r1 = rng_xorshift32(&seed);
-        double r2 = rng_xorshift32(&seed);
-        double r3 = rng_xorshift32(&seed);
-        double r4 = rng_xorshift32(&seed);
-        double xi1 = sqrt(-2.0 * log(r1 + LOG_GUARD));
-        double xi2 = 2.0 * PI * r2;
-        double xi3 = sqrt(-2.0 * log(r3 + LOG_GUARD));
-        double xi4 = 2.0 * PI * r4;
-        s->px[i] = xi1 * cos(xi2) * P_SIGMA;
-        s->py[i] = xi3 * cos(xi4) * P_SIGMA;
+    if (s->params.init_uniform_p_magnitude && s->params.uniform_p_magnitude > 0.0) {
+        /* Cycle-demo init: all particles with |p_x| = |p_y| = p_0,
+         * random ± signs. With p_0 chosen so that 2L/v_perp divides
+         * evenly into the run length, the system returns EXACTLY to
+         * its initial state at the end of the run (Poincaré recurrence
+         * by construction). */
+        double p0 = s->params.uniform_p_magnitude;
+        #pragma omp parallel for schedule(static)
+        for (int i = 0; i < N; i++) {
+            uint32_t seed = rng_seed_mix(base_p, (uint32_t)i);
+            uint32_t bits = (uint32_t)(rng_xorshift32(&seed) * 4.0);
+            int sx = (bits & 1) ? +1 : -1;
+            int sy = (bits & 2) ? +1 : -1;
+            s->px[i] = sx * p0;
+            s->py[i] = sy * p0;
+        }
+    } else {
+        /* Default: per-component gaussian via Box-Muller on pairs. */
+        #pragma omp parallel for schedule(static)
+        for (int i = 0; i < N; i++) {
+            uint32_t seed = rng_seed_mix(base_p, (uint32_t)i);
+            double r1 = rng_xorshift32(&seed);
+            double r2 = rng_xorshift32(&seed);
+            double r3 = rng_xorshift32(&seed);
+            double r4 = rng_xorshift32(&seed);
+            double xi1 = sqrt(-2.0 * log(r1 + LOG_GUARD));
+            double xi2 = 2.0 * PI * r2;
+            double xi3 = sqrt(-2.0 * log(r3 + LOG_GUARD));
+            double xi4 = 2.0 * PI * r4;
+            s->px[i] = xi1 * cos(xi2) * P_SIGMA;
+            s->py[i] = xi3 * cos(xi4) * P_SIGMA;
+        }
     }
 }
 
