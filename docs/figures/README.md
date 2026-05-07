@@ -52,11 +52,51 @@ superior-derecho).
 
 ---
 
-## 2. **Ciclo periódico exacto** — todas vuelven a la esquina en evol = 1M
+## 2. **Ciclo periódico exacto** — 5 puntos críticos en una corrida
 
 **Configuración**: $N = 65\,536$, $\alpha = 0$, $\sigma_L = 0$,
 **`init_uniform_p_magnitude = true`** con $p_0 = 5.25\times10^{-24}$
 calibrado para 175 períodos exactos en 1 000 000 pasos.
+
+### Los 5 puntos críticos de la dinámica 2D
+
+Con todas las partículas con $|p_x| = |p_y| = p_0$ y signos $\pm$
+aleatorios, en el período total $T_{\text{run}} = 175\,T$ ocurren
+**5 configuraciones especiales perfectamente reproducibles** (cualquier
+otro tiempo da una distribución intermedia que es una mezcla de éstas):
+
+| evol      | t      | Configuración                | Verificación empírica (UR / UL / BR / BL) |
+|----------:|--------|------------------------------|---|
+|         0 | 0      | **Todas en UR**              | 100.00 / 0 / 0 / 0 |
+|   250 000 | $T_\text{run}/4$ | **25% en cada esquina** (los 4 cuadrantes) | 25.04 / 24.93 / 24.97 / 25.05 |
+|   500 000 | $T_\text{run}/2$ | **Todas en BL** (esquina opuesta) | 0 / 0 / 0 / 100.00 |
+|   750 000 | $3T_\text{run}/4$ | **25% en cada esquina** otra vez | 25.05 / 24.97 / 24.93 / 25.04 |
+| 1 000 000 | $T_\text{run}$ | **Todas en UR** (vuelta exacta) | 100.00 / 0 / 0 / 0 |
+
+**Por qué 4 esquinas en $T/4$ y $3T/4$**: cada componente $x, y$
+tiene período $T = 2\,m\,L/p_0$. En $t = T/4$, una partícula de
+posición inicial $(x_0, y_0)$ está exactamente en su misma posición
+pero con la velocidad $(v_x, v_y)$ flipped. Como las partículas se
+inicializan con $v_x = \pm p_0/m$ y $v_y = \pm p_0/m$ (4 combinaciones
+de signos con probabilidad 1/4 cada una), en $t = T/4$ están
+distribuidas $25\%$ en cada uno de los 4 cuadrantes. En $T/2$, el
+cálculo da que TODAS las partículas (independiente del signo de su
+velocidad) terminan en $(-x_0, -y_0)$ — la esquina opuesta.
+
+### Cadencia con 5 zonas lentas
+
+Para que cada uno de los 5 puntos críticos sea visible, los snapshots
+se concentran cerca de cada uno (5 antes y 5 después,
+exponencialmente cercanos: 3, 30, 300, 3000, 30000 pasos):
+
+```python
+steps = [3, 27, 270, 2700, 27000, 190000, 27000, 2700, 270, 27, 3,
+         3, 27, 270, 2700, 27000, 190000, 27000, 2700, 270, 27, 3,
+         3, 27, 270, 2700, 27000, 190000, 27000, 2700, 270, 27, 3,
+         3, 27, 270, 2700, 27000, 190000, 27000, 2700, 270, 27, 3]
+# total = 1 000 000
+# 45 snapshots agrupados en torno a evol = 0, 250k, 500k, 750k, 1M.
+```
 
 > ✅ **Verificación numérica**: L1 distance per particle entre
 > snapshot 0 y snapshot 1M = **0.000000** exacto. Las 65 536 partículas
