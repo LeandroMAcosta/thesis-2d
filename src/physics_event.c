@@ -81,14 +81,17 @@ void physics_init_state_random(SimState *s)
     uint64_t base_xy = s->params.seed;
     uint64_t base_p  = s->params.seed ^ 0xDEADBEEFCAFEBABEull;
 
-    /* Positions: uniform in (-0.5, 0.5)^2. */
+    /* Positions: uniform in the upper-right quadrant [0, X_INIT_HALF)^2.
+     * Mimics the 1D parent project (which fills only [0, 0.5)) and gives
+     * visually dramatic "diffusion from a corner" demos. The system
+     * relaxes to uniform fill of the whole box at equilibrium. */
     #pragma omp parallel for schedule(static)
     for (int i = 0; i < N; i++) {
         uint32_t seed = rng_seed_mix(base_xy, (uint32_t)i);
         double rx = rng_xorshift32(&seed);
         double ry = rng_xorshift32(&seed);
-        s->x[i] = (rx - 0.5) * (2.0 * X_INIT_HALF);
-        s->y[i] = (ry - 0.5) * (2.0 * X_INIT_HALF);
+        s->x[i] = rx * X_INIT_HALF;
+        s->y[i] = ry * X_INIT_HALF;
     }
 
     /* Momenta: per-component gaussian via Box-Muller on pairs.

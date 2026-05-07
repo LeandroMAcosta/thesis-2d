@@ -1,84 +1,246 @@
 # Galería de figuras
 
-Salida del toolkit `tools/plot` y `tools/animate`. Todas las figuras se
-pueden regenerar con los comandos en cada sección.
+Salida del toolkit `tools/plot` y `tools/animate`. Se regenera con
+los comandos al pie de cada sección.
 
-## Régimen de relajación ($\alpha = 10^{-4}, \sigma_L = 10^{-4}$)
+---
 
-Corrida: $N = 2^{18} = 262\,144$, 1M pasos en 10 batches. Las
-partículas arrancan distribuidas uniformemente en posición y con
-momentos gaussianos de las condiciones iniciales, y evolucionan hasta
-equilibrio térmico.
+## Los dos regímenes y sus parámetros
 
-### Dashboard combinado
+El modelo tiene dos parámetros que controlan la **estocasticidad de
+la pared**:
 
-Vista global en un solo PNG: marginales de posición y momento,
-heatmap del joint $h(x,y)$, joint $g(p_x, p_y)$ desde partículas,
-distribución radial $|\vec{p}|$, distribución angular $\theta$,
-deriva de energía a lo largo de los 11 snapshots.
+- **$\sigma_L$** (`sigma_l`) — magnitud del ruido gaussiano que se
+  agrega a la posición tangencial cada vez que una partícula rebota.
+  Modela una pared "rugosa": la posición exacta donde ocurre el rebote
+  fluctúa por un sigma del orden de $10^{-4}$ m.
+- **$\alpha$** (`alfa`) — coupling con el "baño térmico" de la pared.
+  En cada rebote, la magnitud del momento perpendicular se modifica
+  estocásticamente con amplitud proporcional a $\alpha$. Modela el
+  intercambio de energía con la pared.
+
+Las dos demos exploran los **dos extremos**:
+
+| Régimen | $\alpha$ | $\sigma_L$ | Qué representa |
+|---|---|---|---|
+| **Relajación** | $10^{-4}$ | $10^{-4}$ | Sistema con disipación → equilibrio térmico (Maxwell-Boltzmann) |
+| **Periódico** | **0** | **0** | Sistema **sin disipación**: dinámica determinista pura, energía conservada bit-for-bit, reflexiones perfectamente especulares |
+
+> 💡 **El régimen periódico es exactamente el caso $\alpha = 0$ y
+> $\sigma_L = 0$**: ningún parámetro estocástico activo. El gas
+> evoluciona de forma completamente determinista. La energía total se
+> conserva exactamente entre snapshots (verificable bit-a-bit) porque
+> las únicas operaciones que la cambiarían (el alfa-loop y el ruido de
+> Box-Muller) **no se ejecutan** cuando esos parámetros valen 0.
+
+Ambas demos arrancan con todas las partículas **acumuladas en la
+esquina superior-derecha** $[0, 0.5]^2$ (mismo "experimento de bomba
+de gas" del repo padre 1D, extendido a 2D). El sistema evoluciona
+hasta llenar la caja entera.
+
+---
+
+## 1. Estado inicial — todas en una esquina
+
+Las 65 536 partículas arrancan distribuidas uniformemente en
+$[0, 0.5]^2$ (el cuadrante superior-derecho de la caja). En el
+joint $h(x, y)$ se ve como un cuadrado iluminado:
+
+![Joint initial corner](joint_initial_corner.png)
+
+Marginales iniciales: $h(x)$ y $h(y)$ están concentrados en $[0, 0.5]$
+(la otra mitad está casi vacía); $g(p_x), g(p_y)$ ya son gaussianas
+porque los momentos se inicializan vía Box-Muller:
+
+![Marginales iniciales](marginals_initial.png)
+
+Scatter del estado inicial — vista clara del cuadrante poblado:
+
+![Scatter corner](scatter_corner_initial.png)
+
+```bash
+./tools/plot joint X0000000.dat -o joint_initial_corner.png
+./tools/plot marginals X0000000.dat -o marginals_initial.png
+./tools/plot scatter --snapshot X0000000.dat --dump graba.dmp.0000500 \
+    --n-sub 10000 -o scatter_corner_initial.png
+```
+
+---
+
+## 2. Régimen de relajación — difusión hasta equilibrio
+
+**Configuración**: $N = 65\,536$, $\alpha = 10^{-4}$, $\sigma_L = 10^{-4}$,
+30 batches con cadencia progresiva (500 pasos al inicio, 150 000 al
+final, total 952 500 pasos).
+
+### Animación: todas las partículas saliendo de la esquina
+
+La cadencia progresiva del config muestra **bien suave los primeros
+segundos** (cuando la difusión es más visual), después salta de a
+muchos miles de pasos para llegar a equilibrio:
+
+| | |
+|---|---|
+| ![Joint relax animation](anim_joint_relax.gif) | ![Scatter relax animation](anim_scatter_relax.gif) |
+
+A la izquierda, el heatmap $h(x, y)$. A la derecha, las posiciones
+de 8 000 partículas. Vas a ver cómo el "punto caliente" del cuadrante
+se difunde hasta llenar uniformemente toda la caja.
+
+### Marginales convergiendo a uniforme
+
+![Marginales animadas](anim_marginals_relax.gif)
+
+$h(x)$ y $h(y)$ pasan de un escalón concentrado en $[0, 0.5]$ a
+una distribución plana sobre $[-0.5, 0.5]$. $g(p_x), g(p_y)$ ya eran
+gaussianas y se estabilizan en torno a Maxwell-Boltzmann.
+
+### Momentos $(p_x, p_y)$
+
+Aunque arrancan como gaussiana, las colisiones contra las paredes
+**redistribuyen energía** entre las partículas. La animación muestra
+la nube relajándose a su forma estacionaria:
+
+![pscatter relax](anim_pscatter_relax.gif)
+
+### Estado al final
+
+El sistema llegó a equilibrio térmico. Todas las distribuciones
+coinciden con sus referencias teóricas:
 
 ![Dashboard relax](dashboard_relax.png)
 
-Comando: `./tools/plot dashboard X1000000.dat --dump graba.dmp.1000000`
+| Métrica | Cota | Observado |
+|---|---|---|
+| $\chi^2_x$ | < 5 | ≈ 1 |
+| $\chi^2_y$ | < 5 | ≈ 1 |
+| $\chi^2_{p_x}$ | < 5 | ≈ 1 |
+| $\chi^2_{p_y}$ | < 5 | ≈ 1 |
+| Isotropía $\langle p_x^2\rangle / \langle p_y^2\rangle$ | $\in [0.9, 1.1]$ | ≈ 1.00 |
+| Correlación $\rho(p_x, p_y)$ | $|\cdot| < 0.05$ | ≈ 0 |
+| Deriva de energía | < 100 ppm | unos pocos ppm |
 
-### Marginales: inicial vs final
+### Distribución radial $|\vec{p}|$ y angular $\theta$
 
-Inicial — distribuciones todavía con sello de las condiciones iniciales:
+Validan que la distribución de momentos en equilibrio es
+**Maxwell-Boltzmann 2D**:
 
-![Marginales inicial](marginals_relax_initial.png)
+| ![Radial](radial_relax_final.png) | ![Angular](angular_relax_final.png) |
+|:--:|:--:|
+| $|\vec p|$ vs distribución de Rayleigh | $\theta = \arctan(p_y/p_x)$ uniforme |
 
-Final — convergencia a uniforme en $x, y$ y a Maxwell-Boltzmann en $p_x, p_y$:
-
-![Marginales final](marginals_relax_final.png)
-
-### Joint $h(x,y)$ y $g(p_x, p_y)$
-
-![Joint](joint_relax_final.png)
-
-### Distribución radial $|\vec{p}|$ vs Rayleigh
-
-![Radial](radial_relax_final.png)
-
-### Distribución angular $\theta = \arctan(p_y / p_x)$
-
-![Angular](angular_relax_final.png)
-
-### Scatter: posiciones y momentos (subsampleados)
-
-![Scatter](scatter_relax_final.png)
-
-### Deriva de energía (relax)
+### Deriva de energía a lo largo de la corrida
 
 ![Energy drift relax](energy_drift_relax.png)
 
-### Animaciones (relax)
+Las pequeñas fluctuaciones (unos pocos ppm) son típicas: la energía
+se inyecta y disipa estocásticamente en cada bounce, pero el promedio
+se mantiene.
 
-| Nombre | Descripción |
-|---|---|
-| ![Joint anim](anim_joint.gif) | Heatmap $h(x,y)$ evolucionando. |
-| ![Marginals anim](anim_marginals.gif) | Marginales convergiendo. |
-| ![Scatter anim](anim_scatter.gif) | Posiciones de 5000 partículas evolucionando. |
-| ![pscatter anim](anim_pscatter.gif) | Momentos $(p_x, p_y)$ relajando. |
+---
 
-## Régimen periódico ($\alpha = 0, \sigma_L = 0$)
+## 3. Régimen periódico — dinámica determinista, $\alpha = \sigma_L = 0$
 
-Corrida: $N = 2^{16} = 65\,536$, 500 k pasos. Energía conservada
-**bit-for-bit** en los 11 snapshots (cf. test de periodicidad).
+**Configuración**: misma cadencia y $N$ que relax, **pero con
+$\alpha = 0, \sigma_L = 0$**. Las consecuencias físicas:
 
-### Dashboard
+- **Sin perturbación tangencial** ($\sigma_L = 0$): cada rebote es
+  perfectamente especular ($p_\perp \mapsto -p_\perp$, sin ruido).
+- **Sin disipación** ($\alpha = 0$): la magnitud del momento de cada
+  partícula **no cambia** — sólo se invierte el signo en cada
+  rebote. La energía cinética total $E = \sum_i \|p_i\|^2 / 2m$ se
+  conserva **bit-for-bit**.
+- **Trayectorias completamente deterministas**: dada la condición
+  inicial, la simulación es totalmente reproducible. No interviene
+  ningún número aleatorio en la dinámica (sí en la generación inicial
+  de momentos, pero después no más).
+- **Phase mixing sin termalización**: las partículas se distribuyen
+  por toda la caja (porque cada una tiene una velocidad distinta y
+  cubre un patrón cerrado en el plano de fase $(x, p_x)$ que es
+  ergódico modulo conservación de $|p|$), pero **cada partícula
+  conserva su energía individual**. El sistema "parece equilibrado"
+  globalmente pero microscópicamente sigue siendo el mismo.
 
-![Dashboard periodic](dashboard_periodic.png)
+### Animación: difusión sin disipación
 
-### Deriva de energía (periodic)
+![Joint periodic](anim_joint_periodic.gif) ![Scatter periodic](anim_scatter_periodic.gif)
 
-Idealmente cero (energía bit-conservada). Lo verifica visualmente:
+Visualmente parece similar al régimen de relajación: las partículas
+salen de la esquina y llenan la caja. La diferencia se ve en los
+momentos:
+
+### Momentos en régimen periódico
+
+![pscatter periodic](anim_pscatter_periodic.gif)
+
+A diferencia del régimen relax, **la nube de momentos NO se
+redistribuye**. Cada partícula conserva $|p_i|$; sólo cambia de signo
+en los rebotes. La animación muestra puntos que se mueven en la nube
+pero ningún cambio estructural.
+
+### Marginales periódicas
+
+![Marginales periodic](anim_marginals_periodic.gif)
+
+$h(x), h(y)$ phase-mixean a uniformes (el sistema explora el espacio
+de configuraciones). $g(p_x), g(p_y)$ permanecen como las gaussianas
+iniciales, **idénticas a sí mismas** snapshot tras snapshot — confirma
+visualmente la conservación de la distribución de magnitudes.
+
+### Conservación bit-for-bit de la energía
 
 ![Energy drift periodic](energy_drift_periodic.png)
 
-### Animaciones (periodic)
+Línea perfectamente plana: la deriva es **exactamente cero**. Esta es
+una propiedad fuerte del modelo que **no es trivial** para un
+integrador numérico cualquiera — event-driven la preserva porque
+las únicas transformaciones que el cold path aplica en este régimen
+son: $p_\perp \mapsto -p_\perp$ y $x \mapsto x_{\text{wall}}$ +
+nada, ambas exactas en aritmética FP64.
 
-| Nombre | Descripción |
-|---|---|
-| ![Joint anim](anim_joint_periodic.gif) | Heatmap $h(x,y)$ — sin disipación, no relaja a uniforme exacto sino a phase-mixed. |
-| ![Scatter anim](anim_scatter_periodic.gif) | Posiciones de 3000 partículas en régimen determinista. |
-| ![pscatter anim](anim_pscatter_periodic.gif) | Momentos $(p_x, p_y)$ — los signos cambian pero las magnitudes no. |
+### Dashboard periódico
+
+![Dashboard periodic](dashboard_periodic.png)
+
+---
+
+## 4. Comparación visual relax vs periodic
+
+| | Relajación | Periódico |
+|---|---|---|
+| Posiciones | difunde a uniforme | phase-mixea a uniforme |
+| Momentos | redistribuyen (Maxwell-Boltzmann) | invariantes |
+| Energía | fluctúa (~ppm) | constante exacta |
+| $\sigma_L$ | $10^{-4}$ | **0** |
+| $\alpha$ | $10^{-4}$ | **0** |
+
+La distinción visual más clara está en los animados de momentos
+(`anim_pscatter_relax.gif` vs `anim_pscatter_periodic.gif`): en
+relajación la nube se reorganiza, en periódico está congelada.
+
+---
+
+## Comandos para reproducir todo
+
+Configs en `/tmp/demo_relax.toml` y `/tmp/demo_periodic.toml`
+(reproducidos al pie del primer commit que generó las figuras). Una
+vez compilado:
+
+```bash
+# Régimen relax con cadencia progresiva (~0.3 s wall):
+mkdir -p /tmp/demo_relax && cd /tmp/demo_relax
+SIM_SEED=42 OMP_NUM_THREADS=8 .../main-event config.toml
+
+# Régimen periódico (sólo cambia alfa y sigma_l a 0):
+mkdir -p /tmp/demo_periodic && cd /tmp/demo_periodic
+SIM_SEED=42 OMP_NUM_THREADS=8 .../main-event config.toml
+
+# Dashboards
+.../tools/plot dashboard X0952500.dat --dump graba.dmp.0952500 -o dashboard.png
+
+# Animaciones (--duration en segundos por frame)
+.../tools/animate --duration 0.18 joint     /tmp/demo_relax    -o anim_joint.gif
+.../tools/animate --duration 0.18 marginals /tmp/demo_relax    -o anim_marginals.gif
+.../tools/animate --duration 0.18 scatter   /tmp/demo_relax    -o anim_scatter.gif
+.../tools/animate --duration 0.18 pscatter  /tmp/demo_relax    -o anim_pscatter.gif
+```
