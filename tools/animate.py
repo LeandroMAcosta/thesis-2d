@@ -97,8 +97,10 @@ def cmd_joint(args):
         frames.append(render_frame_to_array(fig))
         plt.close(fig)
         print(f"  frame {i+1}/{len(snaps)}")
-    imageio.mimsave(args.output, frames, duration=args.duration, loop=0)
-    print(f"wrote {args.output} ({len(frames)} frames)")
+    out = maybe_palindrome(frames, args.palindrome)
+    imageio.mimsave(args.output, out, duration=args.duration, loop=0)
+    print(f"wrote {args.output} ({len(out)} frames"
+          + (" — palindrome on" if args.palindrome else "") + ")")
 
 
 def cmd_marginals(args):
@@ -165,8 +167,10 @@ def cmd_marginals(args):
         frames.append(render_frame_to_array(fig))
         plt.close(fig)
         print(f"  marginals frame {i+1}/{len(snaps)}")
-    imageio.mimsave(args.output, frames, duration=args.duration, loop=0)
-    print(f"wrote {args.output} ({len(frames)} frames)")
+    out = maybe_palindrome(frames, args.palindrome)
+    imageio.mimsave(args.output, out, duration=args.duration, loop=0)
+    print(f"wrote {args.output} ({len(out)} frames"
+          + (" — palindrome on" if args.palindrome else "") + ")")
 
 
 def cmd_scatter(args):
@@ -202,8 +206,10 @@ def cmd_scatter(args):
         frames.append(render_frame_to_array(fig))
         plt.close(fig)
         print(f"  scatter frame {i+1}/{len(snaps)}")
-    imageio.mimsave(args.output, frames, duration=args.duration, loop=0)
-    print(f"wrote {args.output}")
+    out = maybe_palindrome(frames, args.palindrome)
+    imageio.mimsave(args.output, out, duration=args.duration, loop=0)
+    print(f"wrote {args.output} ({len(out)} frames"
+          + (" — palindrome on" if args.palindrome else "") + ")")
 
 
 def cmd_pscatter(args):
@@ -238,14 +244,31 @@ def cmd_pscatter(args):
         frames.append(render_frame_to_array(fig))
         plt.close(fig)
         print(f"  pscatter frame {i+1}/{len(snaps)}")
-    imageio.mimsave(args.output, frames, duration=args.duration, loop=0)
-    print(f"wrote {args.output}")
+    out = maybe_palindrome(frames, args.palindrome)
+    imageio.mimsave(args.output, out, duration=args.duration, loop=0)
+    print(f"wrote {args.output} ({len(out)} frames"
+          + (" — palindrome on" if args.palindrome else "") + ")")
+
+
+def maybe_palindrome(frames, palindrome: bool):
+    """If palindrome, return frames + frames[-2:0:-1] so the GIF plays
+    forward then backward, smoothly returning to the initial state.
+    Visually illustrates the time-reversibility of the periodic regime.
+    Skips the very first/last frames to avoid duplication. """
+    if not palindrome:
+        return frames
+    if len(frames) < 3:
+        return frames
+    return frames + frames[-2:0:-1]
 
 
 def main():
     ap = argparse.ArgumentParser(description="2D event-driven animation toolkit")
     ap.add_argument("--duration", type=float, default=0.5,
                     help="seconds per frame (default 0.5)")
+    ap.add_argument("--palindrome", action="store_true",
+                    help="play forwards then backwards so the GIF returns "
+                         "to the initial state (illustrates time reversibility)")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     p = sub.add_parser("joint")

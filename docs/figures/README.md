@@ -70,8 +70,32 @@ Scatter del estado inicial — vista clara del cuadrante poblado:
 ## 2. Régimen de relajación — difusión hasta equilibrio
 
 **Configuración**: $N = 65\,536$, $\alpha = 10^{-4}$, $\sigma_L = 10^{-4}$,
-30 batches con cadencia progresiva (500 pasos al inicio, 150 000 al
-final, total 952 500 pasos).
+30 batches con **cadencia tipo campana** (densidad de snapshots como
+$\cos^2$):
+
+```python
+steps = [150, 1600, 4450, 8550, 13700, 19750, 26400, 33300, 40250, 46850,
+         52900, 58100, 62200, 65000, 66450, 67150,
+         65000, 62200, 58100, 52900, 46850, 40250, 33300, 26400, 19750,
+         13700, 8550, 4450, 1600, 150]
+# total = 1 000 000 pasos = ~0.44 s simulados
+```
+
+> 📊 **Cadencia tipo campana**: pocos pasos al principio (snapshots
+> finos en el momento más visualmente interesante: la difusión inicial
+> desde la esquina), muchos pasos en el medio (rápido salto sobre la
+> fase de equilibrio "aburrida"), y otra vez pocos pasos al final
+> (preparación visual para el ciclo de retorno via `--palindrome`).
+
+> 🔁 **Animaciones con `--palindrome`**: los GIFs reproducen primero
+> los 30 snapshots de ida (esquina → equilibrio) y después los mismos
+> 30 al revés (equilibrio → esquina). Esto **ilustra visualmente la
+> reversibilidad temporal** del régimen periódico (ver §3) — la
+> dinámica de Liouville con $\alpha = \sigma_L = 0$ es exactamente
+> reversible. En el régimen relax con disipación, la "vuelta a la
+> esquina" es **una ilustración**, no algo que ocurre realmente
+> (Poincaré recurrence requiere tiempos astronómicos para $N = 65\,536$
+> partículas con momentos casi-incommensurables).
 
 ### Animación: todas las partículas saliendo de la esquina
 
@@ -141,8 +165,8 @@ se mantiene.
 
 ## 3. Régimen periódico — dinámica determinista, $\alpha = \sigma_L = 0$
 
-**Configuración**: misma cadencia y $N$ que relax, **pero con
-$\alpha = 0, \sigma_L = 0$**. Las consecuencias físicas:
+**Configuración**: misma cadencia campana y mismo $N$ que relax,
+**pero con $\alpha = 0, \sigma_L = 0$**. Las consecuencias físicas:
 
 - **Sin perturbación tangencial** ($\sigma_L = 0$): cada rebote es
   perfectamente especular ($p_\perp \mapsto -p_\perp$, sin ruido).
@@ -222,25 +246,26 @@ relajación la nube se reorganiza, en periódico está congelada.
 
 ## Comandos para reproducir todo
 
-Configs en `/tmp/demo_relax.toml` y `/tmp/demo_periodic.toml`
-(reproducidos al pie del primer commit que generó las figuras). Una
-vez compilado:
+Una vez compilado:
 
 ```bash
-# Régimen relax con cadencia progresiva (~0.3 s wall):
-mkdir -p /tmp/demo_relax && cd /tmp/demo_relax
-SIM_SEED=42 OMP_NUM_THREADS=8 .../main-event config.toml
+# Configs ya armadas en tests/config.{verify.relax, verify.periodic}.toml.
+# Para los demos visuales, usar la cadencia campana del bloque al inicio
+# de §2 (steps = [150, 1600, ..., 150]) en un config con keep_snapshots=true.
 
-# Régimen periódico (sólo cambia alfa y sigma_l a 0):
-mkdir -p /tmp/demo_periodic && cd /tmp/demo_periodic
-SIM_SEED=42 OMP_NUM_THREADS=8 .../main-event config.toml
+mkdir -p /tmp/demo_relax && cp <config> /tmp/demo_relax/config.toml
+cd /tmp/demo_relax && SIM_SEED=42 OMP_NUM_THREADS=8 .../main-event config.toml
 
-# Dashboards
-.../tools/plot dashboard X0952500.dat --dump graba.dmp.0952500 -o dashboard.png
+# Static plots
+.../tools/plot dashboard <ultimo X*.dat> --dump <ultimo graba.dmp.*> -o dashboard.png
+.../tools/plot {marginals,joint,radial,angular,scatter,energy} ...
 
-# Animaciones (--duration en segundos por frame)
-.../tools/animate --duration 0.18 joint     /tmp/demo_relax    -o anim_joint.gif
-.../tools/animate --duration 0.18 marginals /tmp/demo_relax    -o anim_marginals.gif
-.../tools/animate --duration 0.18 scatter   /tmp/demo_relax    -o anim_scatter.gif
-.../tools/animate --duration 0.18 pscatter  /tmp/demo_relax    -o anim_pscatter.gif
+# Animaciones con --palindrome (ida-y-vuelta, 60 frames):
+.../tools/animate --duration 0.12 --palindrome joint     /tmp/demo_relax -o anim_joint.gif
+.../tools/animate --duration 0.12 --palindrome marginals /tmp/demo_relax -o anim_marginals.gif
+.../tools/animate --duration 0.12 --palindrome scatter   /tmp/demo_relax -o anim_scatter.gif
+.../tools/animate --duration 0.12 --palindrome pscatter  /tmp/demo_relax -o anim_pscatter.gif
+
+# Sin palíndromo (sólo ida, 30 frames):
+.../tools/animate --duration 0.18 joint /tmp/demo_relax -o anim_joint_oneshot.gif
 ```
