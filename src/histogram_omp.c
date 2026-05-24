@@ -30,48 +30,62 @@ void histogram_accumulate(SimState *s)
 {
     int N = s->params.N_PART;
     int B = s->params.BINS;
+    int nbx = 2 * B + 4;
+    int nbp = 2 * B;
+    int nxy = HXY_BINS * HXY_BINS;
 
     state_zero_histograms(s);
 
-    /* Bin into per-thread local arrays first to avoid atomic contention,
-     * then sum locally at the end. For simplicity we use #pragma omp atomic
-     * — at N=2^20 with BINS=500 this is fast enough (a few ms). */
+    /* Per-thread private histograms accumulated in parallel, then
+     * summed in a critical section. The earlier version used 5
+     * atomics per particle, which became the bottleneck at large N
+     * with high thread count. */
+    #pragma omp parallel
+    {
+        int *l_hx  = calloc((size_t)nbx, sizeof(int));
+        int *l_hy  = calloc((size_t)nbx, sizeof(int));
+        int *l_gpx = calloc((size_t)nbp, sizeof(int));
+        int *l_gpy = calloc((size_t)nbp, sizeof(int));
+        int *l_xy  = calloc((size_t)nxy, sizeof(int));
 
-    #pragma omp parallel for schedule(static)
-    for (int i = 0; i < N; i++) {
-        /* hx and hy use the same binning convention as the 1D parent. */
-        int hx_idx = (int)floor((s->x[i] + 0.5) * (X_BIN_SCALE * B) + 2.0);
-        int hy_idx = (int)floor((s->y[i] + 0.5) * (X_BIN_SCALE * B) + 2.0);
-        if (hx_idx < 0)            hx_idx = 0;
-        if (hx_idx > 2 * B + 3)    hx_idx = 2 * B + 3;
-        if (hy_idx < 0)            hy_idx = 0;
-        if (hy_idx > 2 * B + 3)    hy_idx = 2 * B + 3;
+        #pragma omp for schedule(static) nowait
+        for (int i = 0; i < N; i++) {
+            int hx_idx = (int)floor((s->x[i] + 0.5) * (X_BIN_SCALE * B) + 2.0);
+            int hy_idx = (int)floor((s->y[i] + 0.5) * (X_BIN_SCALE * B) + 2.0);
+            if (hx_idx < 0)          hx_idx = 0;
+            if (hx_idx > 2 * B + 3)  hx_idx = 2 * B + 3;
+            if (hy_idx < 0)          hy_idx = 0;
+            if (hy_idx > 2 * B + 3)  hy_idx = 2 * B + 3;
 
-        int gpx_idx = (int)floor((s->px[i] / P_RANGE + 1.0) * (P_BIN_SCALE * B));
-        int gpy_idx = (int)floor((s->py[i] / P_RANGE + 1.0) * (P_BIN_SCALE * B));
-        if (gpx_idx < 0)           gpx_idx = 0;
-        if (gpx_idx > 2 * B - 1)   gpx_idx = 2 * B - 1;
-        if (gpy_idx < 0)           gpy_idx = 0;
-        if (gpy_idx > 2 * B - 1)   gpy_idx = 2 * B - 1;
+            int gpx_idx = (int)floor((s->px[i] / P_RANGE + 1.0) * (P_BIN_SCALE * B));
+            int gpy_idx = (int)floor((s->py[i] / P_RANGE + 1.0) * (P_BIN_SCALE * B));
+            if (gpx_idx < 0)         gpx_idx = 0;
+            if (gpx_idx > 2 * B - 1) gpx_idx = 2 * B - 1;
+            if (gpy_idx < 0)         gpy_idx = 0;
+            if (gpy_idx > 2 * B - 1) gpy_idx = 2 * B - 1;
 
-        /* Coarse 2D joint. Map x,y in [-0.5, 0.5] to [0, HXY_BINS). */
-        int hxy_x = (int)floor((s->x[i] + 0.5) * HXY_BINS);
-        int hxy_y = (int)floor((s->y[i] + 0.5) * HXY_BINS);
-        if (hxy_x < 0)             hxy_x = 0;
-        if (hxy_x >= HXY_BINS)     hxy_x = HXY_BINS - 1;
-        if (hxy_y < 0)             hxy_y = 0;
-        if (hxy_y >= HXY_BINS)     hxy_y = HXY_BINS - 1;
+            int hxy_x = (int)floor((s->x[i] + 0.5) * HXY_BINS);
+            int hxy_y = (int)floor((s->y[i] + 0.5) * HXY_BINS);
+            if (hxy_x < 0)             hxy_x = 0;
+            if (hxy_x >= HXY_BINS)     hxy_x = HXY_BINS - 1;
+            if (hxy_y < 0)             hxy_y = 0;
+            if (hxy_y >= HXY_BINS)     hxy_y = HXY_BINS - 1;
 
-        #pragma omp atomic update
-        s->hx[hx_idx]++;
-        #pragma omp atomic update
-        s->hy[hy_idx]++;
-        #pragma omp atomic update
-        s->gpx[gpx_idx]++;
-        #pragma omp atomic update
-        s->gpy[gpy_idx]++;
-        #pragma omp atomic update
-        s->h_xy[hxy_y * HXY_BINS + hxy_x]++;
+            l_hx [hx_idx]++;
+            l_hy [hy_idx]++;
+            l_gpx[gpx_idx]++;
+            l_gpy[gpy_idx]++;
+            l_xy [hxy_y * HXY_BINS + hxy_x]++;
+        }
+
+        #pragma omp critical
+        {
+            for (int i = 0; i < nbx; i++) { s->hx[i] += l_hx[i]; s->hy[i] += l_hy[i]; }
+            for (int i = 0; i < nbp; i++) { s->gpx[i] += l_gpx[i]; s->gpy[i] += l_gpy[i]; }
+            for (int i = 0; i < nxy; i++) { s->h_xy[i] += l_xy[i]; }
+        }
+
+        free(l_hx); free(l_hy); free(l_gpx); free(l_gpy); free(l_xy);
     }
 }
 

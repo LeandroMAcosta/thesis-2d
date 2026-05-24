@@ -194,40 +194,23 @@ static inline void evolve_one_particle(
     double t  = 0.0;
     long event_count = 0;
 
+    /* Hoist 1/M outside the loop: same micro-opt as the 3D variant. */
+    const double invM = 1.0 / M;
+
     while (1) {
         /* If both momenta are zero the particle is frozen. */
         if (px == 0.0 && py == 0.0) break;
 
-        double vx = px / M;
-        double vy = py / M;
+        double vx = px * invM;
+        double vy = py * invM;
 
-        /* Time to hit a vertical wall (x = ±0.5). */
-        double t_x;
-        double x_target;
-        if (vx > 0.0) {
-            x_target = 0.5;
-            t_x = (x_target - x) / vx;
-        } else if (vx < 0.0) {
-            x_target = -0.5;
-            t_x = (x_target - x) / vx;
-        } else {
-            t_x = INFINITY;
-            x_target = 0.0;
-        }
-
-        /* Time to hit a horizontal wall (y = ±0.5). */
-        double t_y;
-        double y_target;
-        if (vy > 0.0) {
-            y_target = 0.5;
-            t_y = (y_target - y) / vy;
-        } else if (vy < 0.0) {
-            y_target = -0.5;
-            t_y = (y_target - y) / vy;
-        } else {
-            t_y = INFINITY;
-            y_target = 0.0;
-        }
+        /* Branchless wall targets: copysign(0.5, v) picks ±0.5 with the
+         * sign of v. v=0 (impossible in practice) would still produce
+         * a target, but the other axis wins the min anyway. */
+        double x_target = copysign(0.5, vx);
+        double y_target = copysign(0.5, vy);
+        double t_x = (x_target - x) / vx;
+        double t_y = (y_target - y) / vy;
 
         /* Edge: numerical drift can make the candidate negative. */
         if (t_x < 0.0) t_x = 0.0;
@@ -282,7 +265,7 @@ void physics_evolve_batch(SimState *s, int n_steps, unsigned int batch_index)
     uint64_t base = s->params.seed
                   ^ ((uint64_t)batch_index * 0x9E3779B97F4A7C15ull);
 
-    #pragma omp parallel for schedule(dynamic, 1024)
+    #pragma omp parallel for schedule(guided)
     for (int i = 0; i < N; i++) {
         uint32_t seed = rng_seed_mix(base, (uint32_t)i);
         double xi  = s->x[i];
