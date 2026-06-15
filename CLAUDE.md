@@ -18,10 +18,18 @@ using **event-driven analytical integration**. Spinoff of the
 - Box: $[-0.5, 0.5]^2$, 4 walls.
 - Algorithm: per-particle ballistic motion + analytical computation of
   next wall crossing time + stochastic bounce.
+- **Second engine**: `SIM_ENGINE=super` selects the super-event
+  closed-form aggregation (O(1) per particle per batch): **96× over
+  the exact engine** at 1M-step batches, statistically equivalent,
+  exact in the conservative limit (the bit-perfect cycle test passes
+  with it too). See [`docs/SUPER_EVENT.md`](docs/SUPER_EVENT.md);
+  implementation in `src/physics_super.c`. Default engine remains the
+  exact event loop.
 
 ## Conventions
 
 - `SIM_SEED` env var for deterministic runs.
+- `SIM_ENGINE=super` opts into the super-event engine (default: exact).
 - `OMP_NUM_THREADS` controls threads (default 8 for benches).
 - Config TOML schema same as the 1D parent.
 - Output `X<evolution>.dat` extends the 1D format with extra header

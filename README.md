@@ -21,6 +21,10 @@ usando **integración por eventos analítica** (la misma técnica que el repo
 ```bash
 make            # main-event + symlink ./main → main-event
 ./main tests/config.regression.toml
+
+# Engine super-event (agregación cerrada O(1) por batch, 96× sobre el
+# event-driven exacto a batches de 1M pasos; ver docs/SUPER_EVENT.md):
+SIM_ENGINE=super ./main config.toml
 ```
 
 ## Tests

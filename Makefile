@@ -23,7 +23,7 @@ COMMON_SRC := src/main.c src/state.c src/io.c
 COMMON_OBJ := $(patsubst src/%.c,build/%.o,$(COMMON_SRC))
 TOML_OBJ   := build/toml.o
 
-OMP_SRC := src/physics_event.c src/histogram_omp.c src/backend_omp.c
+OMP_SRC := src/physics_event.c src/physics_super.c src/histogram_omp.c src/backend_omp.c
 OMP_OBJ := $(patsubst src/%.c,build/%-omp.o,$(OMP_SRC))
 
 # --- Targets ----------------------------------------------------------------

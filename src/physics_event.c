@@ -26,6 +26,7 @@
 
 #include "constants.h"
 #include "physics.h"
+#include "physics_super.h"
 #include "rng.h"
 #include "state.h"
 
@@ -265,6 +266,8 @@ void physics_evolve_batch(SimState *s, int n_steps, unsigned int batch_index)
     uint64_t base = s->params.seed
                   ^ ((uint64_t)batch_index * 0x9E3779B97F4A7C15ull);
 
+    int use_super = physics_super_enabled();
+
     #pragma omp parallel for schedule(guided)
     for (int i = 0; i < N; i++) {
         uint32_t seed = rng_seed_mix(base, (uint32_t)i);
@@ -272,9 +275,19 @@ void physics_evolve_batch(SimState *s, int n_steps, unsigned int batch_index)
         double yi  = s->y[i];
         double pxi = s->px[i];
         double pyi = s->py[i];
-        evolve_one_particle(&xi, &yi, &pxi, &pyi, &seed, T_target,
-                            s->params.M, s->params.sigmaL,
-                            s->params.alfa, s->params.pmin, s->params.pmax);
+        /* Super-event closed form when enabled; particles violating its
+         * CLT guards fall through to the exact event loop (those are
+         * the slow ones, for which the loop is cheap). */
+        if (!use_super ||
+            !physics_super_particle(&xi, &yi, &pxi, &pyi, &seed, T_target,
+                                    s->params.M, s->params.sigmaL,
+                                    s->params.alfa, s->params.pmin,
+                                    s->params.pmax)) {
+            evolve_one_particle(&xi, &yi, &pxi, &pyi, &seed, T_target,
+                                s->params.M, s->params.sigmaL,
+                                s->params.alfa, s->params.pmin,
+                                s->params.pmax);
+        }
         s->x[i]  = xi;
         s->y[i]  = yi;
         s->px[i] = pxi;
