@@ -22,11 +22,22 @@ echo "[regression] last snapshot header:"
 echo "  $hdr"
 
 # Extract chi² values and confirm sanity
-chi2x=$(echo "$hdr" | grep -oP 'chi2x\s*=\s*\K[\d.eE+-]+')
-chi2y=$(echo "$hdr" | grep -oP 'chi2y\s*=\s*\K[\d.eE+-]+')
-chi2px=$(echo "$hdr" | grep -oP 'chi2px\s*=\s*\K[\d.eE+-]+')
-chi2py=$(echo "$hdr" | grep -oP 'chi2py\s*=\s*\K[\d.eE+-]+')
-iso=$(echo "$hdr" | grep -oP 'isotropy\s*=\s*\K[\d.eE+-]+')
+# Portable header field extraction (BSD grep has no -P/\K).
+hdr_field() {
+    printf '%s\n' "$hdr" | awk -v key="$1" '{
+        gsub(/[[:space:]]*=[[:space:]]*/, "=")
+        for (i = 1; i <= NF; i++) {
+            split($i, kv, "=")
+            if (kv[1] == key) { print kv[2]; exit }
+        }
+    }'
+}
+
+chi2x=$(hdr_field chi2x)
+chi2y=$(hdr_field chi2y)
+chi2px=$(hdr_field chi2px)
+chi2py=$(hdr_field chi2py)
+iso=$(hdr_field isotropy)
 
 # All chi² should be in (0, 5) for a sane run
 all_ok=1

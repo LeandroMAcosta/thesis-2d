@@ -11,6 +11,14 @@ CINC    := -Iinclude -Ithird_party/tomlc99
 CLIBS   := -lm
 OMP     := -fopenmp
 
+# macOS: Apple clang ships no OpenMP runtime; use Homebrew libomp.
+# -isystem (not -I) keeps libomp's headers out of -Werror -pedantic.
+ifeq ($(shell uname -s),Darwin)
+LIBOMP  := $(shell brew --prefix libomp 2>/dev/null)
+OMP     := -Xpreprocessor -fopenmp -isystem $(LIBOMP)/include
+CLIBS   += -L$(LIBOMP)/lib -lomp
+endif
+
 CFLAGS_RELEASE := $(CSTD) $(CWARN) $(CINC) -O3 -march=native -ffast-math
 CFLAGS_DEBUG   := $(CSTD) $(CWARN) $(CINC) -O0 -g3 -fno-omit-frame-pointer \
                   -fsanitize=address,undefined
