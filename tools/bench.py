@@ -77,6 +77,14 @@ def detect_cpu() -> str:
                     return line.split(":", 1)[1].strip()
     except Exception:
         pass
+    # macOS/BSD have no /proc; sysctl carries the same string.
+    try:
+        r = subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"],
+                           capture_output=True, text=True, check=True)
+        if r.stdout.strip():
+            return r.stdout.strip()
+    except Exception:
+        pass
     return "unknown"
 
 
